@@ -1,0 +1,93 @@
+_schema-version: "3.2"
+ID: FioriTest
+description: Fiori elements app
+version: 0.0.1
+modules:
+- name: FioriTest-dest-content
+  type: com.sap.application.content
+  requires:
+  - name: FioriTest-destination-service
+    parameters:
+      content-target: true
+  - name: FioriTest-repo-host
+    parameters:
+      service-key:
+        name: FioriTest-repo-host-key
+  - name: FioriTest-uaa
+    parameters:
+      service-key:
+        name: FioriTest-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: FioriTest_repo_host
+          ServiceInstanceName: FioriTest-html5-srv
+          ServiceKeyName: FioriTest-repo-host-key
+          sap.cloud.service: FioriTest
+        - Authentication: OAuth2UserTokenExchange
+          Name: FioriTest_uaa
+          ServiceInstanceName: FioriTest-xsuaa-srv
+          ServiceKeyName: FioriTest-uaa-key
+          sap.cloud.service: FioriTest
+        existing_destinations_policy: update
+  build-parameters:
+    no-source: true
+- name: FioriTest-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: FioriTest-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - stbusinesspartners.zip
+      name: stbusinesspartners
+      target-path: resources/
+- name: stbusinesspartners
+  type: html5
+  path: businesspartners
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: FioriTest-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: FioriTest-xsuaa-srv
+    service-plan: application
+- name: FioriTest-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: FioriTest-destination-service
+    service-plan: lite
+- name: FioriTest-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: FioriTest-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
